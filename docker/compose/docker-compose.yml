@@ -1,0 +1,42 @@
+services:
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    container_name: backend
+    env_file:
+      - ../../.env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../../backend:/app
+    networks:
+      - appnet
+
+  web:
+    build:
+      context: ../../frontend/web_app
+      dockerfile: Dockerfile
+    container_name: web
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - appnet
+
+  nginx:
+    build:
+      context: ../nginx
+    container_name: gateway
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - web
+    networks:
+      - appnet
+
+networks:
+  appnet:
+    driver: bridge
