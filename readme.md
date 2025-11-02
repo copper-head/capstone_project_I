@@ -1,4 +1,4 @@
-# Text to LaTeX
+# LaTeX Photo Converter
 ## Team Members
 
 Duncan Truitt (Team Lead), Landon Oelschlaeger (Developer), Jayshon Vernor(Developer/Documentation Lead)  
