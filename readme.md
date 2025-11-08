@@ -25,3 +25,13 @@ have uploaded/created.
 LaTeX document
 - Create and implement an AI workflow for parsing and creating TeX files from
 scanned documents.
+
+### Set Up Instructions
+
+To set up the application, make sure that you have docker installed, and then run the following
+
+```
+cd \docker\compose
+docker compose build
+docker compose up
+```
