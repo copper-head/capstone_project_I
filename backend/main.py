@@ -1,5 +1,5 @@
-from .db.database import DatabaseManager
-from .api import create_app
+from backend.db.database import DatabaseManager
+from backend.api import create_app
 
 
 # RUN THE APP
