@@ -1,35 +1,41 @@
+import time
 import psycopg2
 from psycopg2 import pool
-from fastapi import FastAPI, Depends
-
 from backend.constants import DB_CONFIG
 
-# Create the connection pool globally (same idea)
-db_pool = pool.SimpleConnectionPool(
-    minconn=1,
-    maxconn=10,
-    user=DB_CONFIG['DB_USER'],
-    password=DB_CONFIG['DB_PASSWORD'],
-    host=DB_CONFIG['DB_HOST'],
-    port=DB_CONFIG['DB_PORT'],
-    database=DB_CONFIG['DB_NAME']
-)
 
-# Dependency that provides a connection per request
-def get_db():
-    conn = db_pool.getconn()
-    try:
-        yield conn
-    finally:
-        db_pool.putconn(conn)
+class DatabaseManager:
+    def __init__(self):
+        self._pool = None
+        self._init_pool_with_retry()
 
+    def _init_pool_with_retry(self, retries: int = 30, delay: float = 1.0):
+        last_err = None
+        for _ in range(retries):
+            try:
+                self._pool = pool.SimpleConnectionPool(
+                    minconn=1,
+                    maxconn=10,
+                    user=DB_CONFIG["DB_USER"],
+                    password=DB_CONFIG["DB_PASSWORD"],
+                    host=DB_CONFIG["DB_HOST"],
+                    port=DB_CONFIG["DB_PORT"],
+                    database=DB_CONFIG["DB_NAME"],
+                )
+                return
+            except Exception as e:
+                last_err = e
+                time.sleep(delay)
+        raise last_err
 
-app = FastAPI()
+    def get_conn(self):
+        return self._pool.getconn()
 
-@app.get("/users")
-def get_users(conn = Depends(get_db)):
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM users LIMIT 5;")
-    result = cur.fetchall()
-    cur.close()
-    return result
+    def put_conn(self, conn):
+        self._pool.putconn(conn)
+
+    def close_all(self):
+        self._pool.closeall()
+    
+# Initialize a global database manager instance
+pg = DatabaseManager()

@@ -1,10 +1,6 @@
-from db.database import DatabaseManager
-from api import create_app
+from backend.db.database import DatabaseManager
+from backend.api import create_app
 
 
 # RUN THE APP
-db_manager = DatabaseManager()
-app = create_app(db_manager)
-
-
-
+app = create_app()
