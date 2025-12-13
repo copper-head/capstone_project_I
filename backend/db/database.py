@@ -1,3 +1,4 @@
+import time
 import psycopg2
 from psycopg2 import pool
 from backend.constants import DB_CONFIG
@@ -5,15 +6,27 @@ from backend.constants import DB_CONFIG
 
 class DatabaseManager:
     def __init__(self):
-        self._pool = pool.SimpleConnectionPool(
-            minconn=1,
-            maxconn=10,
-            user=DB_CONFIG["DB_USER"],
-            password=DB_CONFIG["DB_PASSWORD"],
-            host=DB_CONFIG["DB_HOST"],
-            port=DB_CONFIG["DB_PORT"],
-            database=DB_CONFIG["DB_NAME"],
-        )
+        self._pool = None
+        self._init_pool_with_retry()
+
+    def _init_pool_with_retry(self, retries: int = 30, delay: float = 1.0):
+        last_err = None
+        for _ in range(retries):
+            try:
+                self._pool = pool.SimpleConnectionPool(
+                    minconn=1,
+                    maxconn=10,
+                    user=DB_CONFIG["DB_USER"],
+                    password=DB_CONFIG["DB_PASSWORD"],
+                    host=DB_CONFIG["DB_HOST"],
+                    port=DB_CONFIG["DB_PORT"],
+                    database=DB_CONFIG["DB_NAME"],
+                )
+                return
+            except Exception as e:
+                last_err = e
+                time.sleep(delay)
+        raise last_err
 
     def get_conn(self):
         return self._pool.getconn()
@@ -23,3 +36,6 @@ class DatabaseManager:
 
     def close_all(self):
         self._pool.closeall()
+    
+# Initialize a global database manager instance
+pg = DatabaseManager()

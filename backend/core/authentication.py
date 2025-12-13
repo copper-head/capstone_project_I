@@ -116,11 +116,3 @@ def delete_user(conn, user_id: int) -> bool:
         cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
         conn.commit()
         return cur.rowcount > 0
-
-
-# Example usage (not part of the module, just for reference):
-# from backend.db.database import pg
-# with pg.connection() as conn:
-#     user_id = create_user(conn, 'testuser', 'password123', 'test@example.com')
-#     user = authenticate_user(conn, 'testuser', 'password123')
-#     print(user)
