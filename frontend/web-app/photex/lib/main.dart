@@ -2,6 +2,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'services/api_service.dart';
 
 void main() {
   runApp(MyApp());
@@ -26,17 +28,41 @@ class MyApp extends StatelessWidget {
 }
 
 class AuthState extends ChangeNotifier {
+  final _storage = const FlutterSecureStorage();
+
   bool _isLoggedIn = false;
+  String? _token;
 
   bool get isLoggedIn => _isLoggedIn;
+  String get token => _token!;
 
-  void login() {
+  AuthState() {
+    _loadToken();
+  }
+
+  Future<void> _loadToken() async {
+    _token = await _storage.read(key: 'auth_token');
+    _isLoggedIn = _token != null;
+    notifyListeners();
+  }
+
+  Future<void> login(String username, String password) async {
+    _token = await ApiService.login(username, password);
+    await _storage.write(key: 'auth_token', value: _token);
     _isLoggedIn = true;
     notifyListeners();
   }
 
-  void logout() {
+  Future<void> register(
+      String username, String email, String password) async {
+    await ApiService.register(username, email, password);
+    await login(username, password); // auto-login
+  }
+
+  Future<void> logout() async {
+    _token = null;
     _isLoggedIn = false;
+    await _storage.delete(key: 'auth_token');
     notifyListeners();
   }
 }
@@ -71,7 +97,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  void _register() {
+  void _register() async{
     if (_usernameController.text.isEmpty ||
         _emailController.text.isEmpty ||
         _passwordController.text.isEmpty ||
@@ -85,9 +111,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    // Fake account creation – replace with API later
-    context.read<AuthState>().login();
-    Navigator.pop(context); // Go back to AuthWrapper
+    try {
+      await context.read<AuthState>().register(
+            _usernameController.text,
+            _emailController.text,
+            _passwordController.text,
+          );
+      Navigator.pop(context);
+    } catch (e) {
+      _showError(e.toString());
+    }
   }
 
   void _showError(String message) {
@@ -163,10 +196,16 @@ class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  void _login() {
-    // Simple login logic - in real app, validate credentials
-    if (_usernameController.text.isNotEmpty && _passwordController.text.isNotEmpty) {
-      context.read<AuthState>().login();
+  void _login() async {
+    try {
+      await context.read<AuthState>().login(
+            _usernameController.text,
+            _passwordController.text,
+          );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
     }
   }
 
@@ -256,6 +295,24 @@ class _MyHomePageState extends State<MyHomePage> {
     return files.where((file) => file.name.toLowerCase().contains(searchQuery.toLowerCase())).toList();
   }
 
+  bool _isImageFile(FileItem file) {
+  final ext = file.type.toLowerCase();
+  return ext == 'jpg' || ext == 'jpeg' || ext == 'png' || ext == 'pdf';
+  }
+
+  void _convertToLatex(FileItem file) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text('Converting ${file.name} to LaTeX...'),
+    ),
+  );
+
+  // TODO: Replace with API call
+}
+
+int? _hoveredIndex;
+
+
   Future<void> _uploadImage() async {
     const XTypeGroup typeGroup = XTypeGroup(
       label: 'images',
@@ -314,11 +371,27 @@ class _MyHomePageState extends State<MyHomePage> {
                   backgroundColor: Colors.green[900],
                   foregroundColor: Colors.white,
                 ),
-                onPressed: () {
-                  Navigator.of(context).pop(); // Close dialog
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Uploaded: ${file.name}')),
-                  );
+                onPressed: () async {
+                  Navigator.of(context).pop();
+
+                  try {
+                    final bytes = await file.readAsBytes();
+                    final token = context.read<AuthState>().token;
+
+                    await ApiService.uploadImage(
+                      bytes: bytes,
+                      filename: file.name,
+                      token: token,
+                    );
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Uploaded ${file.name}')),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Upload failed')),
+                    );
+                  }
                 },
                 child: Text('Upload'),
               ),
@@ -382,11 +455,40 @@ class _MyHomePageState extends State<MyHomePage> {
               itemCount: filteredFiles.length,
               itemBuilder: (context, index) {
                 final file = filteredFiles[index];
-                return ListTile(
-                  hoverColor: Colors.green,
-                  leading: Icon(_getFileIcon(file.type)),
-                  title: Text(file.name),
-                  subtitle: Text('${file.type} - ${file.timestamp.toString()}'),
+                return MouseRegion(
+                  onEnter: (_) => setState(() => _hoveredIndex = index),
+                  onExit: (_) => setState(() => _hoveredIndex = null),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    color: _hoveredIndex == index
+                        ? Colors.green.withAlpha(30)
+                        : Colors.transparent,
+                    child: ListTile(
+                      leading: Icon(_getFileIcon(file.type)),
+                      title: Text(file.name),
+                      subtitle: Text('${file.type} - ${file.timestamp}'),
+
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => FileViewerPage(file: file),
+                          ),
+                        );
+                      },
+
+                      trailing: _isImageFile(file)
+                          ? Tooltip(
+                              message: 'Convert to LaTeX',
+                              child: IconButton(
+                                icon: const Icon(Icons.functions),
+                                color: Colors.green[900],
+                                onPressed: () => _convertToLatex(file),
+                              ),
+                            )
+                          : null,
+                    ),
+                  ),
                 );
               },
             ),
@@ -422,4 +524,81 @@ class FileItem {
   final DateTime timestamp;
 
   FileItem({required this.name, required this.type, required this.timestamp});
+}
+
+
+class FileViewerPage extends StatelessWidget {
+  final FileItem file;
+
+  const FileViewerPage({super.key, required this.file});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.green[900],
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          file.name,
+          style: const TextStyle(color: Colors.white),
+        ),
+      ),
+      body: _buildFileContent(),
+    );
+  }
+
+  Widget _buildFileContent() {
+    switch (file.type.toLowerCase()) {
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+        return _buildImageView();
+      case 'pdf':
+        return _buildPdfPlaceholder();
+      case 'txt':
+        return _buildTextPlaceholder();
+      default:
+        return const Center(child: Text('Unsupported file type'));
+    }
+  }
+
+  Widget _buildImageView() {
+    // Placeholder image viewer
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: const [
+          Icon(Icons.image, size: 120),
+          SizedBox(height: 16),
+          Text('Image preview goes here'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPdfPlaceholder() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.picture_as_pdf, size: 120),
+          SizedBox(height: 16),
+          Text('PDF viewer coming soon'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextPlaceholder() {
+    return const Padding(
+      padding: EdgeInsets.all(16.0),
+      child: Text(
+        'Text file preview goes here',
+        style: TextStyle(fontSize: 16),
+      ),
+    );
+  }
 }
