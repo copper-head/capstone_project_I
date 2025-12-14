@@ -40,18 +40,6 @@ services:
     networks:
       - appnet
 
-  web:
-    build:
-      context: ./frontend/web-app
-      dockerfile: Dockerfile
-    container_name: web
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
-    networks:
-      - appnet
-
   flutter-web:
     image: ghcr.io/cirruslabs/flutter:stable
     container_name: flutter-web
