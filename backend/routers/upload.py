@@ -9,7 +9,7 @@ from typing import Optional
 from backend.core.authentication import verify_token
 from backend.db.database import pg
 
-UPLOAD_DIR = Path("uploads")
+UPLOAD_DIR = Path("uploads/images")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 router = APIRouter(

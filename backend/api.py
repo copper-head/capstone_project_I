@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 from pathlib import Path
 from backend.db.database import DatabaseManager
-from .routers import upload, main, auth
+from .routers import upload, main, auth, tex
 
 
 UPLOAD_DIR = Path("uploads")
@@ -26,5 +26,6 @@ def create_app() -> FastAPI:
     app.include_router(upload.router)
     app.include_router(main.router)
     app.include_router(auth.router)
+    app.include_router(tex.router)
 
     return app
