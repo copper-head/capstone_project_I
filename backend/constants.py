@@ -19,3 +19,8 @@ DB_CONFIG = {
     "DB_USER": ENV.get("DB_USER", "test"),
     "DB_PASSWORD": ENV.get("DB_PASSWORD", "test"),
 }
+
+AI_CONFIG = {
+    "API_KEY": ENV.get("AI_API_KEY", ""),
+    "MODEL_NAME": "gemini-2.0-flash",
+}
