@@ -52,18 +52,6 @@ services:
     networks:
       - appnet
 
-  flutter-web:
-    build:
-      context: ./frontend/web-app/photex
-      dockerfile: Dockerfile.web
-    container_name: flutter-web
-    ports:
-      - "3001:80"
-    depends_on:
-      - backend
-    networks:
-      - appnet
-
 networks:
   appnet:
     driver: bridge
