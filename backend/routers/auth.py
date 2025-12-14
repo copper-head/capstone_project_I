@@ -2,7 +2,7 @@
 # Date: 12-13-2025
 
 from fastapi import APIRouter, HTTPException, Request
-from backend.core.authentication import create_user, authenticate_user
+from backend.core.authentication import create_user, authenticate_user, get_token
 from backend.db.database import pg
 
 # TODO: IMPLEMENT ROUTES FOR AUTHENTICATION
@@ -64,12 +64,13 @@ async def login(request: Request):
         if not username or not password:
             raise HTTPException(status_code=400, detail="Username and password are required")
         
-        with pg.connection() as conn:
+        with pg.get_conn() as conn:
             user = authenticate_user(conn, username, password)
-        if user:
-            return {"message": "Login successful", "user": user}
-        else:
-            raise HTTPException(status_code=401, detail="Invalid credentials")
+            if user:
+                token = get_token(conn, user["id"], ttl_minutes=60)
+                return {"message": "Login successful", "user": user, "token": token}
+            else:
+                raise HTTPException(status_code=401, detail="Invalid credentials")
     except HTTPException:
         raise
     except Exception as e:

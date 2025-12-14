@@ -1,0 +1,1 @@
+ C:\\Users\\Duncan\\OneDrive\\Documentos\\capstone\\capstone_project_I\\frontend\\web-app\\photex\\.dart_tool\\flutter_build\\aac262d08cd552db45490bd556caa6d3\\dart_build_result.json: 
