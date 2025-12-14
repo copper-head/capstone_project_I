@@ -99,11 +99,3 @@ async def upload_batch(
             saved.append({"image_id": img_id, "path": str(dest_path)})
 
     return {"message": "Batch upload successful", "batch_id": batch_id, "items": saved}
-
-
-@router.post("/batch")
-async def upload_batch(
-    files: list[UploadFile] = File(...),
-    authorization: Optional[str] = Header(None)
-):
-    pass
