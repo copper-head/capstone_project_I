@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'http://127.0.0.1:8000';
+  static const String baseUrl = 'http://localhost:8000';
 
   static Map<String, String> authHeaders(String token) => {
         'Authorization': 'Bearer $token',
@@ -45,7 +45,7 @@ class ApiService {
     print('HEADERS: ${response.headers}');
     print('BODY: ${response.body}');
 
-    if (response.statusCode != 201) {
+    if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception('Registration failed');
     }
   }
