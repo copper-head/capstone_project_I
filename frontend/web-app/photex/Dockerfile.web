@@ -1,0 +1,6 @@
+FROM nginx:alpine
+
+# Copy the Flutter web build output (relative to this context)
+COPY build/web /usr/share/nginx/html
+
+EXPOSE 80
