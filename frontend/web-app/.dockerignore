@@ -1,0 +1,6 @@
+.git
+.photex/.dart_tool
+photex/build
+photex/.idea
+photex/.vscode
+node_modules

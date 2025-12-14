@@ -42,11 +42,28 @@ services:
 
   web:
     build:
-      context: /frontend/web_app
+      context: ./frontend/web-app
       dockerfile: Dockerfile
     container_name: web
     ports:
       - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - appnet
+
+  flutter-web:
+    image: ghcr.io/cirruslabs/flutter:stable
+    container_name: flutter-web
+    working_dir: /app
+    volumes:
+      - ./frontend/web-app/photex:/app
+    command: >
+      flutter run -d web-server
+      --web-hostname 0.0.0.0
+      --web-port 80
+    ports:
+      - "3001:80"
     depends_on:
       - backend
     networks:
