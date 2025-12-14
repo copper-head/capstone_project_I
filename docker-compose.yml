@@ -42,11 +42,23 @@ services:
 
   web:
     build:
-      context: /frontend/web_app
+      context: ./frontend/web-app
       dockerfile: Dockerfile
     container_name: web
     ports:
       - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - appnet
+
+  flutter-web:
+    build:
+      context: ./frontend/web-app/photex
+      dockerfile: Dockerfile.web
+    container_name: flutter-web
+    ports:
+      - "3001:80"
     depends_on:
       - backend
     networks:
