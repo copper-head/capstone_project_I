@@ -5,6 +5,8 @@ Assumes a 'users' table with columns: id (serial), username (text), password_has
 """
 
 import bcrypt
+import secrets
+from datetime import datetime, timedelta, timezone
 from psycopg2.extras import RealDictCursor
 
 
@@ -18,6 +20,65 @@ def hash_password(password: str) -> tuple[str, str]:
 def verify_password(password: str, hashed: str) -> bool:
     """Verify a password against its hash."""
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+
+def get_token(conn, user_id: int, ttl_minutes: int = 60) -> str:
+    """Issue a new opaque access token for a user and persist it.
+
+    Args:
+        conn: psycopg2 connection.
+        user_id: ID of the user to issue the token for.
+        ttl_minutes: Token time-to-live in minutes.
+
+    Returns:
+        The newly created token string.
+    """
+    token = secrets.token_urlsafe(32)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=ttl_minutes)
+    with conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO tokens (user_id, token, expires_at) VALUES (%s, %s, %s)",
+            (user_id, token, expires_at)
+        )
+        conn.commit()
+    return token
+
+
+def verify_token(conn, token: str) -> dict | None:
+    """Verify an opaque token against the DB and expiration.
+
+    Args:
+        conn: psycopg2 connection.
+        token: Token string to validate.
+
+    Returns:
+        A user dict (id, username, email) if valid, else None.
+    """
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(
+            """
+            SELECT u.id, u.username, u.email, t.expires_at
+            FROM tokens t
+            JOIN users u ON u.id = t.user_id
+            WHERE t.token = %s
+            """,
+            (token,)
+        )
+        row = cur.fetchone()
+        if not row:
+            return None
+        # Check expiration
+        expires_at = row.get("expires_at")
+        now = datetime.now(timezone.utc)
+        if expires_at is None or expires_at.tzinfo is None:
+            # Treat naive timestamps as UTC
+            expires_at = expires_at.replace(tzinfo=timezone.utc) if expires_at else now
+        if now >= expires_at:
+            # Optionally delete expired token
+            cur.execute("DELETE FROM tokens WHERE token = %s", (token,))
+            conn.commit()
+            return None
+        # Return user fields
+        return {"id": row["id"], "username": row["username"], "email": row["email"]}
 
 
 def create_user(conn, username: str, password: str, email: str = None) -> int:
