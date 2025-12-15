@@ -2,6 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'mocks.dart';
+
+import 'package:photex/state/auth_state.dart';
+import 'package:photex/screens/login_screen.dart';
+
 void main() {
   testWidgets('login button calls AuthState.login', (tester) async {
     final api = MockApiClient();

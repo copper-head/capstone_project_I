@@ -1,7 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:photex/main.dart';
 import 'mocks.dart';
+
+import 'package:photex/state/auth_state.dart';
 
 void main() {
   late MockApiClient api;

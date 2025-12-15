@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
-import 'package:photex/main.dart';
 import 'mocks.dart';
+
+import 'package:photex/state/auth_state.dart';
+import 'package:photex/screens/auth_wrapper.dart';
 
 
 void main() {
