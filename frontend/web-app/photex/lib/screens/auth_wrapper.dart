@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../state/auth_state.dart';
 import 'login_screen.dart';
-import 'my_home_page.dart';
+import 'home_page.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
