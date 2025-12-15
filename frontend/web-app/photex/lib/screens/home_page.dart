@@ -18,27 +18,38 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  bool _loaded = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_loaded) {
+      _loadImages();
+      _loaded = true;
+    }
+  }
+
   String searchQuery = '';
   List<UserImage> images = [];
   bool loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadImages();
-  }
 
   Future<void> _loadImages() async {
     try {
       final auth = context.read<AuthState>();
       final result = await auth.api.listUserImages(auth.token);
 
+      if (!mounted) return;
+
       setState(() {
         images = result;
         loading = false;
       });
     } catch (e) {
-      loading = false;
+      if (!mounted) return;
+
+      setState(() {
+        loading = false;
+      });
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(e.toString())));
     }

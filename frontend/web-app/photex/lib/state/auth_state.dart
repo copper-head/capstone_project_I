@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 import '../services/api_client.dart';
+import '../services/secure_storage.dart';
 
 class AuthState extends ChangeNotifier {
   final ApiClient api;
-  final FlutterSecureStorage storage;
+  final SecureStorage storage;
 
   bool _isLoggedIn = false;
   String? _token;
@@ -14,8 +15,8 @@ class AuthState extends ChangeNotifier {
 
   AuthState({
     required this.api,
-    FlutterSecureStorage? storage,
-  }) : storage = storage ?? const FlutterSecureStorage() {
+    SecureStorage? storage,
+  }) : storage = storage ?? FlutterSecureStorageImpl() {
     _loadToken();
   }
 
@@ -27,7 +28,9 @@ class AuthState extends ChangeNotifier {
 
   Future<void> login(String username, String password) async {
     _token = await api.login(username, password);
-    await storage.write(key: 'auth_token', value: _token);
+    if (_token != null) {
+      await storage.write(key: 'auth_token', value: _token!);
+    }
     _isLoggedIn = true;
     notifyListeners();
   }

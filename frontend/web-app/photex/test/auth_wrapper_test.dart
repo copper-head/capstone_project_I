@@ -22,15 +22,12 @@ void main() {
       ),
     );
 
-    expect(find.text('Login'), findsOneWidget);
+    expect(find.byKey(const Key('login_button')), findsOneWidget);
   });
 
   testWidgets('shows HomePage when logged in', (tester) async {
     final api = MockApiClient();
     final storage = MockSecureStorage();
-
-    when(() => storage.read(key: any(named: 'key')))
-        .thenAnswer((_) async => 'token');
 
     when(() => api.listUserImages(any()))
         .thenAnswer((_) async => []);

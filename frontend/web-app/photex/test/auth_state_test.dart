@@ -13,9 +13,6 @@ void main() {
     api = MockApiClient();
     storage = MockSecureStorage();
 
-    when(() => storage.read(key: any(named: 'key')))
-        .thenAnswer((_) async => null);
-
     auth = AuthState(api: api, storage: storage);
   });
 
@@ -28,9 +25,6 @@ void main() {
     when(() => api.login('user', 'pass'))
         .thenAnswer((_) async => 'token123');
 
-    when(() => storage.write(key: any(named: 'key'), value: any(named: 'value')))
-        .thenAnswer((_) async {});
-
     await auth.login('user', 'pass');
 
     expect(auth.isLoggedIn, true);
@@ -38,11 +32,7 @@ void main() {
   });
 
   test('logout clears token and storage', () async {
-    when(() => storage.delete(key: any(named: 'key')))
-        .thenAnswer((_) async {});
-
     await auth.logout();
-
     expect(auth.isLoggedIn, false);
   });
 }
