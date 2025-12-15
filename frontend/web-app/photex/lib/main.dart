@@ -1,11 +1,15 @@
 import 'dart:typed_data';
-import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:file_selector/file_selector.dart';
+import 'package:photex/platform/download_service.dart';
+import 'package:photex/platform/download_service_web.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'services/api_service.dart';
 import 'models/user_image.dart';
+
+import 'platform/download_service_impl.dart';
+final DownloadService downloadService = WebDownloadService();
 
 void main() {
   runApp(const MyApp());
