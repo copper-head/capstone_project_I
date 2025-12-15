@@ -5,8 +5,6 @@ from fastapi import APIRouter, HTTPException, Request
 from backend.core.authentication import create_user, authenticate_user, get_token
 from backend.db.database import pg
 
-# TODO: IMPLEMENT ROUTES FOR AUTHENTICATION
-
 router = APIRouter(
     prefix="/auth",
     tags=["auth"]
@@ -35,11 +33,14 @@ async def register(request: Request):
         
         with pg.get_conn() as conn:
             user_id = create_user(conn, username, password, email)
+            
         return {"message": "User registered successfully", "user_id": user_id}
     
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
     except Exception as e:
+
         # Handle specific errors, e.g., unique constraint violation
         if "unique constraint" in str(e).lower() or "duplicate key" in str(e).lower():
             raise HTTPException(status_code=400, detail="Username or email already exists")

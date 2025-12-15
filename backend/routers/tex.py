@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Header
+from fastapi import Query
 from fastapi.responses import StreamingResponse
 from typing import Optional, List
 from pydantic import BaseModel
@@ -77,7 +78,10 @@ async def images_to_latex(
 
 @router.get("/images")
 async def list_user_images(
-    authorization: Optional[str] = Header(None)
+    authorization: Optional[str] = Header(None),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    batch_id: Optional[int] = None,
 ):
     # Require Bearer token
     if not authorization or not authorization.lower().startswith("bearer "):
@@ -91,15 +95,28 @@ async def list_user_images(
             raise HTTPException(status_code=401, detail="Invalid or expired token")
 
         with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT id, file_path, uploaded_at, batch_id
-                FROM images
-                WHERE user_id = %s
-                ORDER BY uploaded_at DESC, id DESC
-                """,
-                (user["id"],),
-            )
+            if batch_id is not None:
+                cur.execute(
+                    """
+                    SELECT id, file_path, uploaded_at, batch_id
+                    FROM images
+                    WHERE user_id = %s AND batch_id = %s
+                    ORDER BY uploaded_at DESC, id DESC
+                    LIMIT %s OFFSET %s
+                    """,
+                    (user["id"], batch_id, limit, offset),
+                )
+            else:
+                cur.execute(
+                    """
+                    SELECT id, file_path, uploaded_at, batch_id
+                    FROM images
+                    WHERE user_id = %s
+                    ORDER BY uploaded_at DESC, id DESC
+                    LIMIT %s OFFSET %s
+                    """,
+                    (user["id"], limit, offset),
+                )
             rows = cur.fetchall()
 
         images = [
@@ -112,6 +129,6 @@ async def list_user_images(
             for r in rows
         ]
 
-        return {"count": len(images), "images": images}
+        return {"count": len(images), "images": images, "limit": limit, "offset": offset, "batch_id": batch_id}
     finally:
         pg.put_conn(conn)

@@ -1,4 +1,5 @@
 import time
+import os
 import psycopg2
 from psycopg2 import pool
 from backend.constants import DB_CONFIG
@@ -37,5 +38,12 @@ class DatabaseManager:
     def close_all(self):
         self._pool.closeall()
     
-# Initialize a global database manager instance
-pg = DatabaseManager()
+"""
+Initialize a global database manager instance.
+In test environments, set environment variable DISABLE_DB_INIT=1 to skip
+initializing a real connection pool (tests will monkeypatch 'pg').
+"""
+if os.environ.get("DISABLE_DB_INIT") == "1":
+    pg = None
+else:
+    pg = DatabaseManager()
