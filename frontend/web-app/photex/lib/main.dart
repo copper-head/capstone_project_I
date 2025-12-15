@@ -396,19 +396,6 @@ int? _hoveredIndex;
                   backgroundColor: Colors.green[900],
                   foregroundColor: Colors.white,
                 ),
-                onPressed: () {
-                  Navigator.of(context).pop(); // Close dialog
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Uploaded and converting ${file.name} to LaTeX')),
-                  );
-                },
-                child: Text('Upload & Convert to LaTeX'),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green[900],
-                  foregroundColor: Colors.white,
-                ),
                 onPressed: () async {
                   Navigator.of(context).pop();
 
