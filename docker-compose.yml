@@ -46,10 +46,10 @@ services:
     working_dir: /app
     volumes:
       - ./frontend/web-app/photex:/app
+    tty: true
+    stdin_open: true
     command: >
-      flutter run -d web-server
-      --web-hostname 0.0.0.0
-      --web-port 80
+      bash -lc "flutter pub get && flutter run -d web-server --web-hostname 0.0.0.0 --web-port 80"
     ports:
       - "3001:80"
     depends_on:
