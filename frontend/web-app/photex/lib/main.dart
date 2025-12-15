@@ -1,9 +1,11 @@
 import 'dart:typed_data';
+import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'services/api_service.dart';
+import 'models/user_image.dart';
 
 void main() {
   runApp(MyApp());
@@ -281,34 +283,70 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   String searchQuery = '';
-  List<FileItem> files = [
-    FileItem(name: 'image1.jpg', type: 'JPEG', timestamp: DateTime.now().subtract(Duration(days: 1))),
-    FileItem(name: 'document.pdf', type: 'PDF', timestamp: DateTime.now().subtract(Duration(hours: 5))),
-    FileItem(name: 'latex.txt', type: 'txt', timestamp: DateTime.now().subtract(Duration(minutes: 30))),
-    FileItem(name: 'photo.png', type: 'PNG', timestamp: DateTime.now().subtract(Duration(days: 2))),
-  ];
+  List<UserImage> images = [];
+  bool loading = true;
 
-  List<FileItem> get filteredFiles {
-    if (searchQuery.isEmpty) {
-      return files;
-    }
-    return files.where((file) => file.name.toLowerCase().contains(searchQuery.toLowerCase())).toList();
+  @override
+  void initState() {
+    super.initState();
+    _loadImages();
   }
 
-  bool _isImageFile(FileItem file) {
-  final ext = file.type.toLowerCase();
+  Future<void> _loadImages() async {
+    try {
+      final token = context.read<AuthState>().token;
+      final result = await ApiService.listUserImages(token);
+
+      setState(() {
+        images = result;
+        loading = false;
+      });
+    } catch (e) {
+      loading = false;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
+  List<UserImage> get filteredFiles {
+    if (searchQuery.isEmpty) {
+      return images;
+    }
+    return images.where((file) => file.name.toLowerCase().contains(searchQuery.toLowerCase())).toList();
+  }
+
+  bool _isImageFile(UserImage image) {
+  final ext = image.type.toLowerCase();
   return ext == 'jpg' || ext == 'jpeg' || ext == 'png' || ext == 'pdf';
   }
 
-  void _convertToLatex(FileItem file) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text('Converting ${file.name} to LaTeX...'),
-    ),
-  );
+  Future<void> _convertImageToLatex(UserImage image) async {
+    try {
+      final token = context.read<AuthState>().token;
 
-  // TODO: Replace with API call
-}
+      final texBytes = await ApiService.imagesToLatex(
+        imageIds: [image.id],
+        token: token,
+      );
+
+      _downloadTex(texBytes, 'image_${image.id}.tex');
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
+  
+  void _downloadTex(Uint8List bytes, String filename) {
+    final blob = html.Blob([bytes], 'application/x-tex');
+    final url = html.Url.createObjectUrlFromBlob(blob);
+
+    final anchor = html.AnchorElement(href: url)
+      ..setAttribute("download", filename)
+      ..click();
+
+    html.Url.revokeObjectUrl(url);
+  }
 
 int? _hoveredIndex;
 
@@ -358,19 +396,6 @@ int? _hoveredIndex;
                   backgroundColor: Colors.green[900],
                   foregroundColor: Colors.white,
                 ),
-                onPressed: () {
-                  Navigator.of(context).pop(); // Close dialog
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Uploaded and converting ${file.name} to LaTeX')),
-                  );
-                },
-                child: Text('Upload & Convert to LaTeX'),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green[900],
-                  foregroundColor: Colors.white,
-                ),
                 onPressed: () async {
                   Navigator.of(context).pop();
 
@@ -383,6 +408,12 @@ int? _hoveredIndex;
                       filename: file.name,
                       token: token,
                     );
+
+                    final newImages = await ApiService.listUserImages(token);
+
+                    setState(() {
+                      images = newImages;
+                    });
 
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Uploaded ${file.name}')),
@@ -483,7 +514,7 @@ int? _hoveredIndex;
                               child: IconButton(
                                 icon: const Icon(Icons.functions),
                                 color: Colors.green[900],
-                                onPressed: () => _convertToLatex(file),
+                                onPressed: () => _convertImageToLatex(file),
                               ),
                             )
                           : null,
@@ -518,17 +549,8 @@ int? _hoveredIndex;
   }
 }
 
-class FileItem {
-  final String name;
-  final String type;
-  final DateTime timestamp;
-
-  FileItem({required this.name, required this.type, required this.timestamp});
-}
-
-
 class FileViewerPage extends StatelessWidget {
-  final FileItem file;
+  final UserImage file;
 
   const FileViewerPage({super.key, required this.file});
 

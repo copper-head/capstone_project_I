@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
+import '../models/user_image.dart';
 
 class ApiService {
   static const String baseUrl = 'http://localhost:8000';
@@ -75,15 +76,43 @@ class ApiService {
     }
   }
 
-  /// CONVERT TO LATEX
-  static Future<void> convertToLatex(String fileId, String token) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/convert/$fileId'),
-      headers: authHeaders(token),
+  static Future<List<UserImage>> listUserImages(String token) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/tex/images'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
     );
 
     if (response.statusCode != 200) {
-      throw Exception('Conversion failed');
+      throw Exception('Failed to fetch images');
     }
+
+    final decoded = jsonDecode(response.body);
+    final List images = decoded['images'];
+
+    return images.map((e) => UserImage.fromJson(e)).toList();
   }
+
+  static Future<Uint8List> imagesToLatex({
+    required List<int> imageIds,
+    required String token,}) async {
+      final response = await http.post(
+        Uri.parse('$baseUrl/tex/images-to-latex'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'image_ids': imageIds,
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('LaTeX generation failed');
+      }
+
+      return response.bodyBytes; // IMPORTANT
+    }
+
 }
