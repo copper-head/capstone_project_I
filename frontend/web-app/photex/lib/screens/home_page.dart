@@ -45,13 +45,15 @@ class _MyHomePageState extends State<MyHomePage> {
         loading = false;
       });
     } catch (e) {
-      if (!mounted) return;
-
       setState(() {
         loading = false;
       });
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.toString())));
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.toString())),
+        );
+      });
     }
   }
 

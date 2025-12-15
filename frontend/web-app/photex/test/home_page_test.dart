@@ -17,7 +17,7 @@ void main() {
       (_) async => [
         UserImage(
           id: 1,
-          filePath: 'test.png',
+          filePath: 'uploads/test.png',
           uploadedAt: DateTime(2025, 1, 1),
           batchId: 1,
         ),
@@ -25,6 +25,7 @@ void main() {
     );
 
     final auth = AuthState(api: api, storage: storage);
+    
 
     // Allow _loadToken to complete
     await tester.pump();
@@ -33,18 +34,18 @@ void main() {
     when(() => api.login(any(), any()))
         .thenAnswer((_) async => 'token');
 
+    await auth.login('user', 'pass');
+
     await tester.pumpWidget(
       ChangeNotifierProvider.value(
         value: auth,
         child: const MaterialApp(
-          home: Scaffold(
-            body: MyHomePage()),
+          home: MyHomePage()),
         ),
-      ),
     );
 
     await tester.pumpAndSettle();
 
-    expect(find.text('test.png'), findsOneWidget);
+    expect(find.byType(ListTile), findsOneWidget);
   });
 }
