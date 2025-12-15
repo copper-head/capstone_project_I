@@ -1,3 +1,2 @@
-abstract class DownloadService {
-  void downloadBytes(List<int> bytes, String filename, String mimeType);
-}
+export 'download_service_stub.dart'
+  if (dart.library.html) 'download_service_web.dart';

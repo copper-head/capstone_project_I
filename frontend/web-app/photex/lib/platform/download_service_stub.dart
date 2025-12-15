@@ -1,8 +1,5 @@
-import 'download_service.dart';
-
-class StubDownloadService implements DownloadService {
-  @override
+class DownloadService {
   void downloadBytes(List<int> bytes, String filename, String mimeType) {
-    // no-op
+    // no-op for VM/tests
   }
 }
