@@ -8,7 +8,7 @@ import 'services/api_service.dart';
 import 'models/user_image.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => AuthState(),
+      create: (_) => AuthState(api: ApiService()),
       child: MaterialApp(
         title: 'Photex',
         theme: ThemeData(
@@ -30,7 +30,8 @@ class MyApp extends StatelessWidget {
 }
 
 class AuthState extends ChangeNotifier {
-  final _storage = const FlutterSecureStorage();
+  final ApiClient api;
+  final FlutterSecureStorage storage;
 
   bool _isLoggedIn = false;
   String? _token;
@@ -38,33 +39,36 @@ class AuthState extends ChangeNotifier {
   bool get isLoggedIn => _isLoggedIn;
   String get token => _token!;
 
-  AuthState() {
+  AuthState({
+    required this.api,
+    FlutterSecureStorage? storage,
+  }) : storage = storage ?? const FlutterSecureStorage() {
     _loadToken();
   }
 
   Future<void> _loadToken() async {
-    _token = await _storage.read(key: 'auth_token');
+    _token = await storage.read(key: 'auth_token');
     _isLoggedIn = _token != null;
     notifyListeners();
   }
 
   Future<void> login(String username, String password) async {
-    _token = await ApiService.login(username, password);
-    await _storage.write(key: 'auth_token', value: _token);
+    _token = await api.login(username, password);
+    await storage.write(key: 'auth_token', value: _token);
     _isLoggedIn = true;
     notifyListeners();
   }
 
   Future<void> register(
       String username, String email, String password) async {
-    await ApiService.register(username, email, password);
+    await api.register(username, email, password);
     await login(username, password); // auto-login
   }
 
   Future<void> logout() async {
     _token = null;
     _isLoggedIn = false;
-    await _storage.delete(key: 'auth_token');
+    await storage.delete(key: 'auth_token');
     notifyListeners();
   }
 }
@@ -294,8 +298,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _loadImages() async {
     try {
-      final token = context.read<AuthState>().token;
-      final result = await ApiService.listUserImages(token);
+      final auth = context.read<AuthState>();
+      final result = await auth.api.listUserImages(auth.token);
 
       setState(() {
         images = result;
@@ -322,11 +326,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _convertImageToLatex(UserImage image) async {
     try {
-      final token = context.read<AuthState>().token;
+      final auth = context.read<AuthState>();
 
-      final texBytes = await ApiService.imagesToLatex(
+      final texBytes = await auth.api.imagesToLatex(
         imageIds: [image.id],
-        token: token,
+        token: auth.token,
       );
 
       _downloadTex(texBytes, 'image_${image.id}.tex');
@@ -401,15 +405,15 @@ int? _hoveredIndex;
 
                   try {
                     final bytes = await file.readAsBytes();
-                    final token = context.read<AuthState>().token;
+                    final auth = context.read<AuthState>();
 
-                    await ApiService.uploadImage(
+                    await auth.api.uploadImage(
                       bytes: bytes,
                       filename: file.name,
-                      token: token,
+                      token: auth.token,
                     );
 
-                    final newImages = await ApiService.listUserImages(token);
+                    final newImages = await auth.api.listUserImages(auth.token);
 
                     setState(() {
                       images = newImages;

@@ -1,0 +1,47 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:photex/main.dart';
+import 'mocks.dart';
+
+void main() {
+  late MockApiClient api;
+  late MockSecureStorage storage;
+  late AuthState auth;
+
+  setUp(() {
+    api = MockApiClient();
+    storage = MockSecureStorage();
+
+    when(() => storage.read(key: any(named: 'key')))
+        .thenAnswer((_) async => null);
+
+    auth = AuthState(api: api, storage: storage);
+  });
+
+  test('initially logged out when no token', () async {
+    await Future.delayed(Duration.zero);
+    expect(auth.isLoggedIn, false);
+  });
+
+  test('login stores token and updates state', () async {
+    when(() => api.login('user', 'pass'))
+        .thenAnswer((_) async => 'token123');
+
+    when(() => storage.write(key: any(named: 'key'), value: any(named: 'value')))
+        .thenAnswer((_) async {});
+
+    await auth.login('user', 'pass');
+
+    expect(auth.isLoggedIn, true);
+    expect(auth.token, 'token123');
+  });
+
+  test('logout clears token and storage', () async {
+    when(() => storage.delete(key: any(named: 'key')))
+        .thenAnswer((_) async {});
+
+    await auth.logout();
+
+    expect(auth.isLoggedIn, false);
+  });
+}

@@ -1,0 +1,3 @@
+setUpAll(() {
+  registerFallbackValue(<String>[]);
+});

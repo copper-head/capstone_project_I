@@ -2,16 +2,18 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import '../models/user_image.dart';
+import 'api_client.dart';
 
-class ApiService {
+class ApiService implements ApiClient {
   static const String baseUrl = 'http://localhost:8000';
 
-  static Map<String, String> authHeaders(String token) => {
+  Map<String, String> authHeaders(String token) => {
         'Authorization': 'Bearer $token',
       };
 
-  /// LOGIN
-  static Future<String> login(String username, String password) async {
+  // Login
+  @override
+  Future<String> login(String username, String password) async {
     final response = await http.post(
       Uri.parse('$baseUrl/auth/login'),
       headers: {'Content-Type': 'application/json'},
@@ -26,11 +28,12 @@ class ApiService {
     }
 
     final data = jsonDecode(response.body);
-    return data['token']; // opaque token
+    return data['token'];
   }
 
-  /// REGISTER
-  static Future<void> register(
+  // Register
+  @override
+  Future<void> register(
       String username, String email, String password) async {
     final response = await http.post(
       Uri.parse('$baseUrl/auth/register'),
@@ -42,17 +45,14 @@ class ApiService {
       }),
     );
 
-    print('STATUS: ${response.statusCode}');
-    print('HEADERS: ${response.headers}');
-    print('BODY: ${response.body}');
-
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception('Registration failed');
     }
   }
 
-  /// UPLOAD IMAGE
-  static Future<void> uploadImage({
+  // Upload Image
+  @override
+  Future<void> uploadImage({
     required Uint8List bytes,
     required String filename,
     required String token,
@@ -76,7 +76,9 @@ class ApiService {
     }
   }
 
-  static Future<List<UserImage>> listUserImages(String token) async {
+  // List User Images
+  @override
+  Future<List<UserImage>> listUserImages(String token) async {
     final response = await http.get(
       Uri.parse('$baseUrl/tex/images'),
       headers: {
@@ -94,7 +96,9 @@ class ApiService {
     return images.map((e) => UserImage.fromJson(e)).toList();
   }
 
-  static Future<Uint8List> imagesToLatex({
+  // Images to LaTeX
+  @override
+  Future<Uint8List> imagesToLatex({
     required List<int> imageIds,
     required String token,}) async {
       final response = await http.post(
@@ -112,7 +116,6 @@ class ApiService {
         throw Exception('LaTeX generation failed');
       }
 
-      return response.bodyBytes; // IMPORTANT
+      return response.bodyBytes;
     }
-
 }
