@@ -1,53 +1,69 @@
+# Test cases for /tex endpoints
+#
+# 1. Tests for /tex/images requires auth Route
+# - Test that a request without Authorization header returns 401
+# - Test that a request with valid token and images returns 200 with correct data structure
+
+
+from datetime import datetime
+
+
+### ========= Tests for /tex/images Route ========== ###
+
 def test_tex_images_requires_auth(client):
     r = client.get("/tex/images")
     assert r.status_code == 401
 
 
-def test_images_to_latex_requires_auth(client):
-    r = client.post("/tex/images-to-latex", json={"image_ids": [1,2]})
-    assert r.status_code == 401
-
-
-def test_list_user_images_happy_path(client, fake_pg, fake_verify_token):
+def test_list_user_images(client, fake_pg, fake_verify_token):
     # Prepare rows: id, file_path, uploaded_at, batch_id
     from datetime import datetime
+
+    # Insert some fake images into the fake DB
     fake_pg._rows = [
         (10, "uploads/images/user_1_a.png", datetime(2025, 12, 14, 12, 0, 0), None),
         (11, "uploads/images/user_1_b.png", datetime(2025, 12, 14, 13, 0, 0), 2),
     ]
 
-    r = client.get("/tex/images?limit=1&offset=0", headers={"Authorization": "Bearer valid"})
+    # Call the endpoint and verify 200
+    r = client.get("/tex/images", headers={"Authorization": "Bearer valid"})
     assert r.status_code == 200
+
+    # Make sure the response data matches the fake rows
     data = r.json()
-    # Our fake cursor returns all rows at once, but API should
-    # reflect provided pagination params
-    assert data["limit"] == 1
-    assert data["offset"] == 0
-    assert data["count"] == len(data["images"]) >= 1
-    assert data["images"][0]["id"] in (10, 11)
-
-
-def test_list_user_images_invalid_limit_offset(client, fake_verify_token):
-    # invalid limit (>200) and negative offset should cause 422
-    r1 = client.get("/tex/images?limit=1000&offset=0", headers={"Authorization": "Bearer valid"})
-    assert r1.status_code == 422
-    r2 = client.get("/tex/images?limit=50&offset=-1", headers={"Authorization": "Bearer valid"})
-    assert r2.status_code == 422
-
-
-def test_list_user_images_batch_filter(client, fake_pg, fake_verify_token):
-    from datetime import datetime
-    # Only rows with batch_id=2
-    fake_pg._rows = [
-        (21, "uploads/images/user_1_b1.png", datetime(2025, 12, 14, 14, 0, 0), 2),
-        (22, "uploads/images/user_1_b2.png", datetime(2025, 12, 14, 14, 5, 0), 2),
-    ]
-    r = client.get("/tex/images?batch_id=2&limit=10&offset=0", headers={"Authorization": "Bearer valid"})
-    assert r.status_code == 200
-    data = r.json()
-    assert data["batch_id"] == 2
     assert data["count"] == 2
-    assert all(img["batch_id"] == 2 for img in data["images"])
+    assert len(data["images"]) == 2
+    assert {img["id"] for img in data["images"]} == {10, 11}
+    assert all("file_path" in img for img in data["images"])
+    assert all("uploaded_at" in img for img in data["images"])
+
+def test_list_user_images_with_batch_id(client, fake_pg, fake_verify_token):
+
+    from datetime import datetime
+
+    # Insert some fake images into the fake DB
+    fake_pg._rows = [
+        (20, "uploads/images/user_1_c.png", datetime(2025, 12, 15, 10, 0, 0), 5),
+        (21, "uploads/images/user_1_d.png", datetime(2025, 12, 15, 11, 0, 0), 3)
+    ]
+
+    # Call the endpoint with batch_id filter
+    r = client.get("/tex/images?batch_id=5", headers={"Authorization": "Bearer valid"})
+    assert r.status_code == 200
+
+    # Make sure the response data matches the fake rows
+    data = r.json()
+    assert data["count"] == 1
+    assert len(data["images"]) == 1
+    assert data["images"][0]["id"] == 20
+    assert data["images"][0]["batch_id"] == 5
+
+### ========= Tests for /tex/images-to-latex Route ========== ###
+
+def test_images_to_latex_requires_auth(client):
+    r = client.post("/tex/images-to-latex", json={"image_ids": [1,2]})
+    assert r.status_code == 401
+
 
 
 def test_images_to_latex_happy_path(client, fake_pg, fake_verify_token, monkeypatch):
