@@ -18,6 +18,7 @@ from backend.core import authentication as auth_module
 from backend.api import create_app
 import backend.routers.tex as tex_router
 import backend.routers.upload as upload_router
+import backend.routers.auth as auth_router
 
 
 class FakeCursor:
@@ -114,8 +115,17 @@ class FakeConn:
     def __init__(self, rows=None):
         self._rows = rows or []
 
-    def cursor(self):
+    def cursor(self, *args, **kwargs):
         return FakeCursor(self._rows)
+
+    def commit(self):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
 
 
 class FakePG:
@@ -151,6 +161,7 @@ def client(monkeypatch, fake_pg, fake_verify_token):
     # Patch router-local references to pg and verify_token as they were imported directly
     monkeypatch.setattr(tex_router, "pg", fake_pg)
     monkeypatch.setattr(upload_router, "pg", fake_pg)
+    monkeypatch.setattr(auth_router, "pg", fake_pg)
     monkeypatch.setattr(tex_router, "verify_token", fake_verify_token)
     monkeypatch.setattr(upload_router, "verify_token", fake_verify_token)
     app = create_app()
