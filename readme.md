@@ -28,10 +28,21 @@ scanned documents.
 
 ### Set Up Instructions
 
-To set up the application, make sure that you have docker installed, and then run the following
+To set up the application, make sure that you have docker and [flutter](https://docs.flutter.dev/get-started/quick?_gl=1*ezoz13*_gcl_aw*R0NMLjE3NjU4Mzk0ODkuQ2owS0NRaUFnUF9KQmhELUFSSXNBTnBFTXh3LWlpZWhYRlFlVHdGdXBZb211Z3MyYkxGYkZaVXhueW5aU0FYUmZva09YVzZoUHFEM3Z2b2FBdXFrRUFMd193Y0I.*_gcl_dc*R0NMLjE3NjU4Mzk0ODkuQ2owS0NRaUFnUF9KQmhELUFSSXNBTnBFTXh3LWlpZWhYRlFlVHdGdXBZb211Z3MyYkxGYkZaVXhueW5aU0FYUmZva09YVzZoUHFEM3Z2b2FBdXFrRUFMd193Y0I.*_ga*MTk5MjYyMTk1MC4xNzYyNjIyMjIw*_ga_04YGWK0175*czE3NjU4Mzk0ODkkbzQkZzAkdDE3NjU4Mzk0ODkkajYwJGwwJGgw)
+installed. 
+After installing flutter run `flutter config --enable-web` once per host to properly
+configure flutter for web applications. Once both have been installed and flutter has
+been configured ensure docker desktop is running and then execute the following to run
+the application (starting from the repo root folder):
 
 ```
-cd \docker\compose
+cd \frontend\web-app\photex
+flutter clean
+flutter pub get
+flutter build web
+docker compose down -v
 docker compose build
 docker compose up
 ```
+
+Access the application from a browser using (http://127.0.0.1:3001/)
