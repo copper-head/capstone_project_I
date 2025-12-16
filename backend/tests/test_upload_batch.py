@@ -1,3 +1,7 @@
+# I AM ONLY KEEPING THIS FOR INCREASED COVERAGE
+# This route is not being used by the frontend currently.
+# but for sake of coverage, we keep tests here.
+
 import io
 
 

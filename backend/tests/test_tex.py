@@ -64,34 +64,49 @@ def test_images_to_latex_requires_auth(client):
     r = client.post("/tex/images-to-latex", json={"image_ids": [1,2]})
     assert r.status_code == 401
 
+def test_images_to_latex_invalid_token(client, fake_verify_token):
+    r = client.post(
+        "/tex/images-to-latex",
+        headers={"Authorization": "Bearer invalid"},
+        json={"image_ids": [1,2]},
+    )
+    assert r.status_code == 401
 
+def test_images_to_latex_non_list_image_ids(client, fake_verify_token):
+    r = client.post(
+        "/tex/images-to-latex",
+        headers={"Authorization": "Bearer valid"},
+        json={"image_ids": "not_a_list"},
+    )
+    assert r.status_code == 422
 
-def test_images_to_latex_happy_path(client, fake_pg, fake_verify_token, monkeypatch):
-    # Prepare rows: id, file_path
+def test_images_to_latex_converts_images_to_latex(client, fake_pg, fake_verify_token, monkeypatch):
+    # Provide DB rows for the requested image IDs (id, file_path)
+    # Note: route orders by id, so we intentionally provide them out-of-order.
     fake_pg._rows = [
-        (5, "uploads/images/user_1_note1.png"),
-        (6, "uploads/images/user_1_note2.png"),
+        (2, "uploads/images/user_1_img2.png"),
+        (1, "uploads/images/user_1_img1.png"),
     ]
 
-    # Mock agent to avoid external calls and return deterministic latex
     import backend.routers.tex as tex_router
 
     def fake_generate(paths):
-        assert paths == ["uploads/images/user_1_note1.png", "uploads/images/user_1_note2.png"]
-        return "\\documentclass{article}\\begin{document}Test\\end{document}"
+        assert paths == [
+            "uploads/images/user_1_img1.png",
+            "uploads/images/user_1_img2.png",
+        ]
+        return "\\documentclass{article}\\begin{document}OK\\end{document}"
 
     monkeypatch.setattr(tex_router, "generate_latex_from_images", fake_generate)
 
     r = client.post(
         "/tex/images-to-latex",
         headers={"Authorization": "Bearer valid"},
-        json={"image_ids": [5, 6]},
+        json={"image_ids": [1, 2]},
     )
     assert r.status_code == 200
-    # Content-Type and attachment header
     assert r.headers.get("content-type") == "application/x-tex"
     assert "attachment; filename=images_includes.tex" in r.headers.get("content-disposition", "")
-    # Body contains our fake latex
     assert b"\\documentclass{article}" in r.content
 
 
