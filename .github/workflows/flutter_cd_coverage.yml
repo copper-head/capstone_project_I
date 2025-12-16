@@ -17,6 +17,9 @@ jobs:
   coverage:
     runs-on: ubuntu-latest
 
+    environment:
+      name: github-pages
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
