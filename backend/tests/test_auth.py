@@ -1,3 +1,7 @@
+
+
+### ========= Tests for /auth/register Route ========== ###
+
 def test_register_requires_username_and_password(client):
 	r = client.post("/auth/register", json={"username": "u_only"})
 	assert r.status_code == 400
