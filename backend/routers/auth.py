@@ -35,12 +35,14 @@ async def register(request: Request):
             user_id = create_user(conn, username, password, email)
             
         return {"message": "User registered successfully", "user_id": user_id}
+
+    except HTTPException:
+        raise
     
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     
     except Exception as e:
-
         # Handle specific errors, e.g., unique constraint violation
         if "unique constraint" in str(e).lower() or "duplicate key" in str(e).lower():
             raise HTTPException(status_code=400, detail="Username or email already exists")
